@@ -1,3 +1,6 @@
+-- H.E.V Mark V HUD replacement by soup587/Jess
+-- Feel free to edit, use parts of code, just don't take full credit for it!!
+
 if not host:isHost() then return end
 local windowSize = client:getScaledWindowSize()
 local _windowSize = windowSize
@@ -156,13 +159,6 @@ local amReserve = ammoDisplay:newText("Ammo Reserve Display")
 :setPos(-56,-11,0)
 :setScale(0.75)
 
-events.tick:register(function()
-if _windowSize == windowSize then return end
-setPosAnchored(crosshair,5,-0.5,3.5)
-setPosAnchored(healthDisplay,7,-9,28)
-setPosAnchored(ammoDisplay,9,84,28)
-end)
-
 local ammoCapables = {
   ['tacz:modern_kinetic_gun'] = true
 }
@@ -223,6 +219,8 @@ events.tick:register(function()
   pvars.mhealth = player:getMaxHealth()
   pvars.absorption = player:getAbsorptionAmount()
   pvars.healthRatio = ((pvars.health/pvars.mhealth)*100) + ((pvars.absorption/20)*100)
+  pvars.armor = player:getArmor()
+  pvars.armorRatio = (pvars.armor/20)*100
   pvars.heldItem = player:getHeldItem()
   pvars.ammoCapable = false
   if ammoCapables[pvars.heldItem.id] then
@@ -258,14 +256,19 @@ events.tick:register(function()
 end)
 
 events.tick:register(function()
-
 hpText:setText(colourText(math.round(pvars.healthRatio),hudColour))
 
+armourDisplay:setVisible(pvars.armor > 0)
+if pvars.armor > 0 then
+  suitText:setText(colourText(pvars.armorRatio,hudColour))
+end
+
 quickHealthBar:setSize(1,pvars.healthRatio/6.5)
-quickAmmoBar:setSize(1,pvars.heldItem.tag.GunCurrentAmmoCount)
 
 ammoDisplay:setVisible(pvars.ammoCapable)
-if pvars.ammoCapable then 
+quickAmmo:setVisible(pvars.ammoCapable)
+if pvars.ammoCapable then
+  quickAmmoBar:setSize(1,pvars.heldItem.tag.GunCurrentAmmoCount + (pvars.antiChambered and 0 or pvars.heldItem.tag.HasBulletInBarrel))
   amText:setText(colourText(pvars.heldItem.tag.GunCurrentAmmoCount + (pvars.antiChambered and 0 or pvars.heldItem.tag.HasBulletInBarrel),hudColour))
   if pvars.reserveCount < 2147483647 then
     amReserve:setText(colourText(pvars.reserveCount,hudColour))
@@ -273,4 +276,72 @@ if pvars.ammoCapable then
     amReserve:setText(colourText("∞",hudColour))
   end
 end
+end)
+
+local chatHistory = ""
+local chatOffset = 0
+
+local chat = hud:newPart("Chat")
+setPosAnchored(chat,4,-12,-64)
+chatText = chat:newText("Chat Text")
+:setScale(0.75)
+:setWidth(180)
+
+local sayText = chat:newText("Say Text")
+:setScale(0.75)
+:setText("Say : ")
+
+local debugtext = hud:newText("debug")
+
+local chatimer = 0 
+
+events.chat_receive_message:register(function(raw,text)
+local tableified = json.newBuilder():build():deserialize(text)
+
+local formatted
+if tableified.with and tableified.with[2] and tableified.with[2].text then
+  local user = tableified.with[1].insertion
+  local message = tableified.with[2].text
+  formatted = (user ..": " ..message)
+elseif tableified.extra and tableified.extra[1].text == "[lua] " then
+  local user = tableified.extra[2].text
+  local message = tableified.extra[4].text
+  formatted = ("[LUA] " .. user ..": "..(type(message) == "string" and message or tostring(message)))
+else
+  local message = raw
+  formatted = (message)
+end
+
+chatHistory = chatHistory .. formatted .. "\n"
+
+chatOffset = chatOffset + (client.getTextDimensions((formatted),180,true).y+1)*0.75
+chatText:setPos(nil,chatOffset)
+chatText:setText(chatHistory)
+chatText:setOpacity(1)
+chatimer = 120
+end)
+
+local chatOpen = false
+events.tick:register(function()
+chatOpen = host:isChatOpen()
+sayText:setVisible(chatOpen)
+if chatOpen then
+  chatText:setOpacity(1)
+  chatimer = 20
+  sayText:setText("Say : "..host:getChatText())
+end
+if chatimer > 0 then
+  chatimer = chatimer - 1
+  if chatimer < 10 then
+    chatText:setOpacity(chatimer/10)
+  end
+end
+end)
+
+events.tick:register(function()
+if _windowSize == windowSize then return end
+setPosAnchored(crosshair,5,-0.5,3.5)
+setPosAnchored(healthDisplay,7,-9,28)
+setPosAnchored(ammoDisplay,9,84,28)
+setPosAnchored(chat,4,-12,-64+chatOffset)
 end)
