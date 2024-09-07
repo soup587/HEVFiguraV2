@@ -97,13 +97,13 @@ quickAmmo:newSprite("QAmmoBG")
 :setTexture(quickbg)
 :setColor(0,0,0,0.25)
 :setSize(2,16)
-:setPos(0,4.5,0)
+:setPos(0.25,4.5,0)
 local quickAmmoBar = quickAmmo:newSprite("QAmmoBar")
 :setTexture(quickbg)
 :setColor(vectors.hexToRGB(hudColour):unpack(),0.75)
 :setSize(1,15)
 :setRot(0,0,180)
-:setPos(-1.5,-11,-1)
+:setPos(-1.25,-11,-1)
 
 local healthDisplay = hud:newPart("Health Display")
 setPosAnchored(healthDisplay,7,-9,28)
@@ -169,19 +169,21 @@ local ammoTypes = {
     ['tacz:vector45'] = true
   },
   ['tacz:556x45'] = {
-    ['tacz:m249'] = true
+    ['tacz:m249'] = true,
+    ['tacz:m16a1'] = 20,
+    ['tacz:m4a1'] = 30
   },
   ['tacz:762x39'] = {
-    ['tacz:ak47'] = true
+    ['tacz:ak47'] = 30
   },
   ['tacz:9mm'] = {
-    ['tacz:glock_17'] = true,
-    ['tacz:cz75'] = true,
-    ['tacz:hk_mp5a5'] = true,
+    ['tacz:glock_17'] = 17,
+    ['tacz:cz75'] = 16,
+    ['tacz:hk_mp5a5'] = 30,
     ['tacz:uzi'] = true
   },
   ['tacz:338'] = {
-    ['tacz:ai_awp'] = true
+    ['tacz:ai_awp'] = 5
   },
   ['tacz:50bmg'] = {
     ['tacz:m95'] = true
@@ -193,9 +195,9 @@ local ammoTypes = {
     ['tacz:deagle'] = true
   },
   ['tacz:12g'] = {
-    ['tacz:db_short'] = true,
-    ['tacz:db_long'] = true,
-    ['tacz:aa12'] = true
+    ['tacz:db_short'] = 2,
+    ['tacz:db_long'] = 2,
+    ['tacz:aa12'] = 8
   },
   ['tacz:rpg_rocket'] = {
     ['tacz:rpg7'] = true
@@ -236,6 +238,8 @@ events.tick:register(function()
       for k,v in pairs(ammoTypes) do
         if v[pvars.heldItem.tag.GunId] ~= nil then
           pvars.ammoType = k
+          pvars.clipSize = v[pvars.heldItem.tag.GunId]
+          pvars.clipRatio = math.clamp(((pvars.heldItem.tag.GunCurrentAmmoCount+(pvars.antiChambered and 0 or pvars.heldItem.tag.HasBulletInBarrel))/pvars.clipSize)*100,0,100)
           break
         else
           pvars.ammoType = nil
@@ -268,7 +272,7 @@ quickHealthBar:setSize(1,pvars.healthRatio/6.5)
 ammoDisplay:setVisible(pvars.ammoCapable)
 quickAmmo:setVisible(pvars.ammoCapable)
 if pvars.ammoCapable then
-  quickAmmoBar:setSize(1,pvars.heldItem.tag.GunCurrentAmmoCount + (pvars.antiChambered and 0 or pvars.heldItem.tag.HasBulletInBarrel))
+  quickAmmoBar:setSize(1,(pvars.clipRatio/6.5))
   amText:setText(colourText(pvars.heldItem.tag.GunCurrentAmmoCount + (pvars.antiChambered and 0 or pvars.heldItem.tag.HasBulletInBarrel),hudColour))
   if pvars.reserveCount < 2147483647 then
     amReserve:setText(colourText(pvars.reserveCount,hudColour))
